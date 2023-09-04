@@ -73,6 +73,8 @@
       // the canvas DOM size and WebGL render target sizes yourself.
       // config.matchWebGLToCanvasSize = false;
 
+      var showAdBanner=false;
+
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         container.className = "unity-mobile";
         // Avoid draining fillrate performance on mobile devices,
@@ -81,6 +83,7 @@
       } else {
         canvas.style.width = "100%";
         canvas.style.height = "100%";
+        showAdBanner=true;
       }
       canvas.style.background = "url(Build/MDGbuild.jpg.unityweb') center / cover";
       loadingBar.style.display = "block";
@@ -97,6 +100,14 @@
           vkBridge.send('VKWebAppInit')
           console.log("sdk inited");
           auth();
+          sendSDKtype();
+          if (showAdBanner==true) {
+              vkBridge.send('VKWebAppShowBannerAd', { 
+                 banner_location: 'bottom',
+                 can_close: false
+             });
+          }
+          else vkBridge.subscribe(eventHandler);
           loadingBar.style.display = "none";
           fullscreenButton.onclick = () => {
             unityInstance.SetFullscreen(1);
@@ -110,6 +121,18 @@
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <script>
 
+    function eventHandler(e) {  //need for stop audio in android app
+      const { type, data } = e.detail;
+      switch(type) {
+        case 'VKWebAppViewHide':
+          unityI.SendMessage('YandexSDK', 'DisableSounds');
+          break;
+        case 'VKWebAppViewRestore': 
+          unityI.SendMessage('YandexSDK', 'EnableSounds');
+          break;
+        }
+    }
+
     function auth(){
         console.log("auth...");
         vkBridge.send('VKWebAppGetUserInfo').then(_info =>{
@@ -117,7 +140,6 @@
           var name=_info.first_name+' '+_info.last_name;
           unityI.SendMessage('YandexSDK', 'AuthenticateSuccess', name);
           getLanguage();
-          getDeviceInfo();
         });
       }
 
@@ -138,53 +160,19 @@
       }
 
       function showFullscrenAd(){
-        //ad or group subscriptions
-        if (Math.random()>0.7) {
-            console.log("AppJoinGroup");
-            vkBridge.send('VKWebAppJoinGroup', {
-                group_id: 194094435
-                })
-                .then((data) => { 
-                if (data.result) {
-                    // Пользователь подписался на сообщество
-                }
-                })
-                .catch((error) => {
-                vkBridge.send('VKWebAppShowNativeAds',{ad_format:"interstitial"}).then(data => {
-                console.log(data);});
-                // Ошибка
-                console.log(error);
-            });
-        }
-        else {
-            vkBridge.send('VKWebAppShowNativeAds',{ad_format:"interstitial"}).then(data => {
-              console.log(data);});
-        }
+        vkBridge.send('VKWebAppShowNativeAds',{ad_format:"interstitial"}).then(data => {
+            unityI.SendMessage('YandexSDK', 'EnableSounds');
+            console.log(data);})
+            .catch((error) => { unityI.SendMessage('YandexSDK', 'EnableSounds'); });
       }
 
       function showRewardedAd(){
         vkBridge.send('VKWebAppShowNativeAds',{ad_format:"reward"}).then(data => {
+          unityI.SendMessage('YandexSDK', 'EnableSounds');
           console.log(data);
           unityI.SendMessage('YandexSDK', 'RewardGetting',JSON.stringify(data.result));})
+          .catch((error) => { unityI.SendMessage('YandexSDK', 'EnableSounds'); });
       }
-
-      function getDeviceInfo() {
-        const ua = navigator.userAgent;
-        var device="mobile";
-        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-            device="tablet";
-        }
-        else {
-            if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
-                device="mobile";
-            }
-            else {
-               device="desktop";
-            }
-        }
-        unityI.SendMessage('YandexSDK','GettingDevice',JSON.stringify({"type":device}));
-        console.log("device:"+device);
-        }
 
       function getLanguage() {
            var userLang = navigator.language || navigator.userLanguage; 
@@ -209,20 +197,18 @@
         });
       }
 
-      function fullScreen() {
-        unityI.SetFullscreen(1);
+      function callFriends(){
+           vkBridge.send('VKWebAppShowInviteBox');
       }
 
-      //�������������� ��������� �������� ������� (��� �������) 
-    var isActive;
-    document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState == "hidden"&&unityI!=null) {
-        isActive = setInterval(function() { unityI.SendMessage('YandexSDK', 'updateNonFocusedTab'); }, 80);
-    } else {
-        clearInterval(isActive);
-        isActive = false;
-    }
-    });
+      function joinGroup(){
+         vkBridge.send('VKWebAppJoinGroup', {
+             group_id: 194094435
+        });
+      }
+
+      function sendSDKtype() { unityI.SendMessage('YandexSDK','SetSDKtype',"0"); }
+
     </script>
   </body>
 </html>
