@@ -102,10 +102,10 @@
           auth();
           sendSDKtype();
           if (showAdBanner==true) {
-             // vkBridge.send('VKWebAppShowBannerAd', { 
-                // banner_location: 'bottom',
-               //  can_close: false
-           //  });
+              vkBridge.send('VKWebAppShowBannerAd', { 
+                 banner_location: 'bottom',
+                 can_close: false
+             });
           }
           else vkBridge.subscribe(eventHandler);
           loadingBar.style.display = "none";
