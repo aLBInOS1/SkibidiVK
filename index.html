@@ -101,13 +101,11 @@
           console.log("sdk inited");
           auth();
           sendSDKtype();
-          if (showAdBanner==true) {
-              vkBridge.send('VKWebAppShowBannerAd', { 
-                 banner_location: 'bottom',
-                 can_close: false
-             });
-          }
-          else vkBridge.subscribe(eventHandler);
+          if (showAdBanner==false) vkBridge.subscribe(eventHandler);
+          vkBridge.send('VKWebAppShowBannerAd', { 
+            banner_location: 'bottom',
+            can_close: false
+          });
           loadingBar.style.display = "none";
           fullscreenButton.onclick = () => {
             unityInstance.SetFullscreen(1);
